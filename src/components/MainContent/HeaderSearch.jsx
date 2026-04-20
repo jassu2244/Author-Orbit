@@ -45,7 +45,7 @@ export default function HeaderSearch({ value, onChange, loading }) {
 
         <input
           ref={ref}
-          type="search"
+          type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onFocus={() => setIsFocused(true)}
