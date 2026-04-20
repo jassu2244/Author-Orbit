@@ -41,6 +41,7 @@ export default function FeaturedSummary({ book, authorName, searchToken, loading
     bookNarrative ||
       `A central piece in the catalog of ${authorName || "this author"} surfaced from Open Library's indexed editions and metadata.`,
   );
+  const showDetailLoaders = loading || bookPhase !== "open" || !bookNarrative;
 
   return (
     <div className="max-w-sm space-y-6">
@@ -60,7 +61,7 @@ export default function FeaturedSummary({ book, authorName, searchToken, loading
           Published <span className="text-muted">{book.year}</span>
         </p>
       )}
-      {bookPhase === "open" ? (
+      {!showDetailLoaders ? (
         <>
           <p className="text-sm leading-relaxed text-muted">{summary}</p>
           <div className="flex items-center gap-4">
@@ -78,9 +79,15 @@ export default function FeaturedSummary({ book, authorName, searchToken, loading
           </div>
         </>
       ) : (
-        <p className="text-sm italic text-muted">
-          {loading ? "Preparing featured book..." : "Opening the featured book..."}
-        </p>
+        <div className="space-y-3" aria-busy="true" aria-live="polite">
+          <Skeleton className="h-4 w-4/5 rounded" />
+          <Skeleton className="h-4 w-3/5 rounded" />
+          <div className="space-y-2 pt-1">
+            <Skeleton className="h-3 w-full rounded" />
+            <Skeleton className="h-3 w-[92%] rounded" />
+            <Skeleton className="h-3 w-[84%] rounded" />
+          </div>
+        </div>
       )}
     </div>
   );
