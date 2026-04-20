@@ -25,6 +25,7 @@ export default function App() {
   const [yearFilter, setYearFilter] = useState(null);
   const [subjectFilter, setSubjectFilter] = useState(null);
   const [selectedBook, setSelectedBook] = useState(null);
+  const [selectedSidebarBook, setSelectedSidebarBook] = useState(null);
 
   const debounced = useDebouncedValue(query, 450);
   const { status, data, error } = useAuthorData(debounced);
@@ -62,40 +63,56 @@ export default function App() {
     },
   ].filter(Boolean);
 
+  const isQueryEmpty = !debounced.trim();
+
   const renderHome = () => (
     <div className="flex flex-col gap-10">
       <HeaderSearch value={query} onChange={setQuery} loading={loading} />
 
-      <div>
-        <AuthorGreeting
-          authorName={authorName}
-          totalBooks={data?.totalBooks ?? 0}
-          yearRange={yearRange}
-          onStartReading={featured ? () => openBook(featured) : undefined}
-          disabled={!featured}
-        />
-      </div>
-
-      {activeFilters.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs uppercase tracking-[0.18em] text-muted">Filters</span>
-          {activeFilters.map((f) => (
-            <FilterChip key={f.kind} label={f.label} onClear={f.clear} />
-          ))}
+      {isQueryEmpty ? (
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="rounded-full bg-black/5 p-4 text-muted mb-4">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-8 w-8">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+          </div>
+          <h2 className="font-serif text-3xl text-ink">Discover an Author</h2>
+          <p className="mt-3 text-muted">Use the search bar above to explore catalogs of your favorite authors.</p>
         </div>
-      )}
-
-      {status === "error" ? (
-        <ErrorState message={error || "Failed to load author data."} onRetry={() => setQuery((q) => `${q} `)} />
       ) : (
-        <WorksCarousel
-          title={activeFilters.length ? "Matching Works" : "Popular Works"}
-          books={filteredBooks}
-          loading={loading}
-          isBookmarked={bookmarks.has}
-          onToggleBookmark={toggleBookmark}
-          onSelect={openBook}
-        />
+        <>
+          <div>
+            <AuthorGreeting
+              authorName={authorName}
+              totalBooks={data?.totalBooks ?? 0}
+              yearRange={yearRange}
+              onStartReading={featured ? () => openBook(featured) : undefined}
+              disabled={!featured}
+            />
+          </div>
+
+          {activeFilters.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs uppercase tracking-[0.18em] text-muted">Filters</span>
+              {activeFilters.map((f) => (
+                <FilterChip key={f.kind} label={f.label} onClear={f.clear} />
+              ))}
+            </div>
+          )}
+
+          {status === "error" ? (
+            <ErrorState message={error || "Failed to load author data."} onRetry={() => setQuery((q) => `${q} `)} />
+          ) : (
+            <WorksCarousel
+              title={activeFilters.length ? "Matching Works" : "Popular Works"}
+              books={filteredBooks}
+              loading={loading}
+              isBookmarked={bookmarks.has}
+              onToggleBookmark={toggleBookmark}
+              onSelect={setSelectedSidebarBook}
+            />
+          )}
+        </>
       )}
     </div>
   );
@@ -138,30 +155,34 @@ export default function App() {
   const asideContent = showAside ? (
     <div className="flex flex-col gap-10">
       <AuthorProfile
-        authorName={authorName}
-        photoUrl={authorDetails?.photoUrl}
+        authorName={isQueryEmpty ? "No author selected" : authorName}
+        photoUrl={isQueryEmpty ? null : authorDetails?.photoUrl}
         onOpenBookmarks={() => setActiveView("bookmarks")}
         bookmarkCount={bookmarks.items.length}
       />
-      <FeaturedSummary
-        book={featured}
-        authorName={authorName}
-        searchToken={query}
-        loading={loading}
-        onReadMore={featured ? () => openBook(featured) : undefined}
-      />
-      <AuthorTimeline
-        years={data?.years ?? []}
-        loading={loading}
-        activeYear={yearFilter}
-        onSelectYear={(y) => setYearFilter((cur) => (cur === y ? null : y))}
-      />
-      <RelatedSubjects
-        subjects={data?.subjects ?? []}
-        loading={loading}
-        activeSubject={subjectFilter}
-        onSelectSubject={setSubjectFilter}
-      />
+      {!isQueryEmpty && (
+        <>
+          <FeaturedSummary
+            book={selectedSidebarBook || featured}
+            authorName={authorName}
+            searchToken={query}
+            loading={loading}
+            onReadMore={openBook}
+          />
+          <AuthorTimeline
+            years={data?.years ?? []}
+            loading={loading}
+            activeYear={yearFilter}
+            onSelectYear={(y) => setYearFilter((cur) => (cur === y ? null : y))}
+          />
+          <RelatedSubjects
+            subjects={data?.subjects ?? []}
+            loading={loading}
+            activeSubject={subjectFilter}
+            onSelectSubject={setSubjectFilter}
+          />
+        </>
+      )}
     </div>
   ) : null;
 

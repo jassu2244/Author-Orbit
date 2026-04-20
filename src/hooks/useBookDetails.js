@@ -1,7 +1,6 @@
-import { startTransition, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 const OL_BASE = "https://openlibrary.org";
-const DETAILS_CACHE = new Map();
 
 function extractDescription(desc) {
   if (!desc) return null;
@@ -15,24 +14,12 @@ export function useBookDetails(workKey) {
 
   useEffect(() => {
     if (!workKey) {
-      startTransition(() => {
-        setState({ status: "idle", data: null, error: null });
-      });
-      return;
-    }
-
-    if (DETAILS_CACHE.has(workKey)) {
-      const cached = DETAILS_CACHE.get(workKey);
-      startTransition(() => {
-        setState({ status: "success", data: cached, error: null });
-      });
+      setState({ status: "idle", data: null, error: null });
       return;
     }
 
     const controller = new AbortController();
-    startTransition(() => {
-      setState({ status: "loading", data: null, error: null });
-    });
+    setState({ status: "loading", data: null, error: null });
 
     fetch(`${OL_BASE}${workKey}.json`, { signal: controller.signal })
       .then((r) => {
@@ -40,31 +27,22 @@ export function useBookDetails(workKey) {
         return r.json();
       })
       .then((json) => {
-        const parsed = {
-          title: json.title,
-          description: extractDescription(json.description),
-          subjects: Array.isArray(json.subjects) ? json.subjects.slice(0, 12) : [],
-          subjectPlaces: Array.isArray(json.subject_places) ? json.subject_places.slice(0, 6) : [],
-          firstPublishDate: json.first_publish_date ?? null,
-          openLibraryUrl: `${OL_BASE}${workKey}`,
-        };
-
-        DETAILS_CACHE.set(workKey, parsed);
-
-        startTransition(() => {
-          setState({
-            status: "success",
-            data: parsed,
-            error: null,
-          });
+        setState({
+          status: "success",
+          data: {
+            title: json.title,
+            description: extractDescription(json.description),
+            subjects: Array.isArray(json.subjects) ? json.subjects.slice(0, 12) : [],
+            subjectPlaces: Array.isArray(json.subject_places) ? json.subject_places.slice(0, 6) : [],
+            firstPublishDate: json.first_publish_date ?? null,
+            openLibraryUrl: `${OL_BASE}${workKey}`,
+          },
+          error: null,
         });
       })
       .catch((err) => {
         if (err.name === "AbortError") return;
-
-        startTransition(() => {
-          setState({ status: "error", data: null, error: err.message });
-        });
+        setState({ status: "error", data: null, error: err.message });
       });
 
     return () => controller.abort();
